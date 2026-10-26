@@ -1,0 +1,126 @@
+name: deploy-installer
+
+on:
+  workflow_dispatch:
+    inputs:
+      client_id:
+        description: "OAuth Client ID کلودفلر (از Manage Account ← OAuth clients)"
+        required: true
+      install_origin:
+        description: "مبدأ صفحه‌ی نصب، مثلاً https://mhakimii.github.io"
+        required: true
+        default: "https://mhakimii.github.io"
+      worker_name:
+        description: "نام ورکر نصب‌کننده"
+        required: true
+        default: "nova-installer"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-installer
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: بررسی پیش‌نیازها
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Secret با نام ${name} تنظیم نشده است."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          if [ -z "${{ inputs.client_id }}" ]; then
+            echo "::error::OAuth Client ID خالی است."
+            exit 1
+          fi
+          if ! [[ "${{ inputs.worker_name }}" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]; then
+            echo "::error::نام ورکر نامعتبر است."
+            exit 1
+          fi
+
+      - name: ساخت اسکریپت آماده‌ی پنل
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4.152.0 deploy --dry-run --outdir .payload --config wrangler.toml
+          test -s .payload/_worker.js
+          sed '/sourceMappingURL=/d' .payload/_worker.js > installer/payload.js.txt
+          echo "payload bytes: $(wc -c < installer/payload.js.txt)"
+          node --check <(printf '%s' "$(cat installer/payload.js.txt)") 2>/dev/null || true
+
+      - name: ساخت یا یافتن فضای KV برای نشست‌ها
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/kv/namespaces"
+          title="nova-installer-sessions"
+          listing=$(curl -sS --retry 3 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}?per_page=100")
+          if [ "$(jq -r '.success' <<<"$listing")" != "true" ]; then
+            jq -r '.errors[]? | "::error::\(.code) \(.message)"' <<<"$listing" || true
+            exit 1
+          fi
+          kv_id=$(jq -r --arg t "$title" '[.result[] | select(.title == $t)][0].id // empty' <<<"$listing")
+          if [ -z "$kv_id" ]; then
+            created=$(curl -sS -X POST \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$(jq -nc --arg t "$title" '{title:$t}')" \
+              "$api")
+            if [ "$(jq -r '.success' <<<"$created")" != "true" ]; then
+              jq -r '.errors[]? | "::error::\(.code) \(.message)"' <<<"$created" || true
+              exit 1
+            fi
+            kv_id=$(jq -r '.result.id' <<<"$created")
+            echo "فضای KV ساخته شد: ${title}"
+          else
+            echo "فضای KV موجود استفاده می‌شود: ${title}"
+          fi
+          echo "KV_ID=${kv_id}" >> "$GITHUB_ENV"
+
+      - name: ساخت کانفیگ دیپلوی
+        run: |
+          set -euo pipefail
+          sed -E "s/^id = \"0{32}\"/id = \"${KV_ID}\"/" installer/wrangler.toml > installer/wrangler.ci.toml
+          if ! grep -q "\"${KV_ID}\"" installer/wrangler.ci.toml; then
+            echo "::error::جایگزینی شناسه‌ی KV انجام نشد."
+            exit 1
+          fi
+          grep -n -A2 'kv_namespaces' installer/wrangler.ci.toml
+
+      - name: انتشار نصب‌کننده
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4.152.0 deploy \
+            --config installer/wrangler.ci.toml \
+            --name "${{ inputs.worker_name }}" \
+            --var OAUTH_CLIENT_ID:"${{ inputs.client_id }}" \
+            --var INSTALL_ORIGIN:"${{ inputs.install_origin }}" \
+            2>&1 | tee installer-deploy.log
+          url=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' installer-deploy.log | head -n1 || true)
+          echo "INSTALLER_URL=${url}" >> "$GITHUB_ENV"
+
+      - name: خلاصه
+        run: |
+          {
+            echo "### نصب‌کننده منتشر شد"
+            echo ""
+            echo "- آدرس: ${INSTALLER_URL:-در لاگ مرحله‌ی قبل ببینید}"
+            echo "- Callback (باید در OAuth client ثبت شده باشد): ${INSTALLER_URL}/callback"
+            echo ""
+            echo "این آدرس را در صفحه‌ی نصب (بخش «آدرس سرور نصب») بگذار یا به من بده تا پیش‌فرضش کنم."
+          } >> "$GITHUB_STEP_SUMMARY"
