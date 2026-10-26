@@ -1,0 +1,117 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      worker_name:
+        description: "نام ورکر (حروف کوچک انگلیسی، عدد و خط تیره)"
+        required: true
+        default: "nova-worker"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+      WORKER_NAME: ${{ inputs.worker_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: بررسی پیش‌نیازها
+        run: |
+          set -euo pipefail
+          missing=0
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID ADMIN_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Secret با نام ${name} تنظیم نشده است."
+              missing=1
+            fi
+          done
+          [ "$missing" -eq 0 ]
+          if ! [[ "$WORKER_NAME" =~ ^[a-z0-9][a-z0-9-]{0,62}$ ]]; then
+            echo "::error::نام ورکر نامعتبر است: ${WORKER_NAME}"
+            exit 1
+          fi
+
+      - name: ساخت یا یافتن فضای KV
+        run: |
+          set -euo pipefail
+          api="https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/kv/namespaces"
+          title="${WORKER_NAME}-kv"
+          listing=$(curl -sS --retry 3 -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" "${api}?per_page=100")
+          if [ "$(jq -r '.success' <<<"$listing")" != "true" ]; then
+            jq -r '.errors[]? | "::error::\(.code) \(.message)"' <<<"$listing" || true
+            exit 1
+          fi
+          kv_id=$(jq -r --arg t "$title" '[.result[] | select(.title == $t)][0].id // empty' <<<"$listing")
+          if [ -z "$kv_id" ]; then
+            created=$(curl -sS -X POST \
+              -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+              -H "Content-Type: application/json" \
+              --data "$(jq -nc --arg t "$title" '{title:$t}')" \
+              "$api")
+            if [ "$(jq -r '.success' <<<"$created")" != "true" ]; then
+              jq -r '.errors[]? | "::error::\(.code) \(.message)"' <<<"$created" || true
+              exit 1
+            fi
+            kv_id=$(jq -r '.result.id' <<<"$created")
+            echo "فضای KV ساخته شد: ${title}"
+          else
+            echo "فضای KV موجود استفاده می‌شود: ${title}"
+          fi
+          echo "KV_ID=${kv_id}" >> "$GITHUB_ENV"
+
+      - name: نوشتن تنظیمات استقرار
+        run: |
+          set -euo pipefail
+          cat > wrangler.deploy.toml <<EOF
+          name = "${WORKER_NAME}"
+          main = "_worker.js"
+          compatibility_date = "2026-10-08"
+
+          [[kv_namespaces]]
+          binding = "KV"
+          id = "${KV_ID}"
+
+          [observability]
+          enabled = true
+          EOF
+          cat wrangler.deploy.toml
+
+      - name: انتشار روی Cloudflare
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4.152.0 deploy --config wrangler.deploy.toml 2>&1 | tee wrangler-deploy.log
+          url=$(grep -oE 'https://[A-Za-z0-9.-]+\.workers\.dev' wrangler-deploy.log | head -n1 || true)
+          echo "WORKER_URL=${url}" >> "$GITHUB_ENV"
+
+      - name: تنظیم رمز مدیر
+        run: |
+          set -euo pipefail
+          printf '%s' "$ADMIN_PASSWORD" | npx --yes wrangler@4.152.0 secret put ADMIN --config wrangler.deploy.toml
+
+      - name: خلاصه
+        run: |
+          {
+            echo "### Nova Worker Beta آماده است"
+            echo ""
+            echo "- نام ورکر: \`${WORKER_NAME}\`"
+            echo "- آدرس ورکر: ${WORKER_URL:-در لاگ مرحله «انتشار روی Cloudflare» ببینید}"
+            echo "- ورود مدیر: ${WORKER_URL}/login"
+            echo "- پنل: ${WORKER_URL}/admin"
+            echo ""
+            echo "رمز ورود همان مقدار Secret با نام \`ADMIN_PASSWORD\` است."
+          } >> "$GITHUB_STEP_SUMMARY"

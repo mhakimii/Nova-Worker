@@ -18,10 +18,21 @@
 ```bash
 npm install      # نصب wrangler
 npm run dev      # اجرای محلی روی http://localhost:8787
-npm run deploy   # انتشار روی Cloudflare
 ```
 
 بررسی سلامت پس از اجرا: `GET /health`
+
+## نصب روی Cloudflare
+
+پنل اصلی (`_worker.js`) با اکشن **deploy** نصب می‌شود: فضای KV ساخته می‌شود، ورکر منتشر می‌شود و رمز مدیر تنظیم می‌شود. راهنمای تصویری: [`install/index.html`](install/index.html)
+
+سه Secret لازم است:
+
+| نام | مقدار |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | توکن با دسترسی Workers Scripts + Workers KV |
+| `CLOUDFLARE_ACCOUNT_ID` | شناسه‌ی اکانت کلودفلر |
+| `ADMIN_PASSWORD` | رمز ورود پنل |
 
 ## قواعد این ریپو
 

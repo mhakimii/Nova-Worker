@@ -4,6 +4,8 @@ node_modules/
 # wrangler / local build output
 .wrangler/
 dist/
+wrangler.deploy.toml
+wrangler-deploy.log
 
 # secrets — never commit
 .dev.vars

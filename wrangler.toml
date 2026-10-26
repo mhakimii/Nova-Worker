@@ -1,4 +1,6 @@
-name = "nova-worker"
+# این فایل فقط برای اسکلت پروژه است (src/index.js).
+# پنل اصلی (_worker.js) از طریق اکشن deploy منتشر می‌شود و کانفیگ خودش را در CI می‌سازد.
+name = "nova-worker-scaffold"
 main = "src/index.js"
 compatibility_date = "2026-10-26"
 
