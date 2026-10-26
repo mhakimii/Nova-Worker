@@ -2,14 +2,20 @@
   "name": "nova-worker",
   "version": "0.1.0",
   "private": true,
-  "description": "Nova Worker — Cloudflare Workers control panel (Persian UI)",
+  "description": "Nova Worker Beta — Cloudflare Workers control panel (Persian UI)",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
     "tail": "wrangler tail"
   },
   "devDependencies": {
     "wrangler": "^4.152.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "ADMIN": {
+        "description": "رمز ورود پنل. یک رمز بلند و یکتا انتخاب کن (حداقل ۱۲ کاراکتر، حروف بزرگ و کوچک، عدد و نماد). بعداً از Workers → Settings → Variables and Secrets قابل تغییر است."
+      }
+    }
   }
 }

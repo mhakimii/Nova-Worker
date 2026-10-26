@@ -1,5 +1,7 @@
-# این فایل فقط الگو است. برای اجرای محلی آن را به .dev.vars کپی کنید.
-# فایل .dev.vars در .gitignore است و هرگز کامیت نمی‌شود.
-# مقادیر واقعی روی Cloudflare در Settings → Variables and Secrets تنظیم می‌شوند.
+# الگوی متغیرهای محلی و Secretها.
+#
+# در نصب یک‌کلیکی (Deploy to Cloudflare) همین کلیدها از کاربر پرسیده می‌شوند.
+# مقدار مثال را عوض کن و یک رمز قوی بگذار؛ این مقدار رمز ورود پنل می‌شود.
+# برای اجرای محلی این فایل را به .dev.vars کپی کن (خودِ .dev.vars کامیت نمی‌شود).
 
-ADMIN_PASSWORD="change-me-locally"
+ADMIN="REPLACE-WITH-A-STRONG-PASSWORD"

@@ -1,8 +1,13 @@
-# این فایل فقط برای اسکلت پروژه است (src/index.js).
-# پنل اصلی (_worker.js) از طریق اکشن deploy منتشر می‌شود و کانفیگ خودش را در CI می‌سازد.
-name = "nova-worker-scaffold"
-main = "src/index.js"
-compatibility_date = "2026-10-26"
+# کانفیگ پنل اصلی — دکمه‌ی «Deploy to Cloudflare» و wrangler از همین می‌خوانند.
+name = "nova-worker"
+main = "_worker.js"
+compatibility_date = "2026-10-08"
+workers_dev = true
+
+[[kv_namespaces]]
+binding = "KV"
+# در نصب یک‌کلیکی، Cloudflare خودش فضای KV را می‌سازد و این شناسه را جایگزین می‌کند.
+id = "00000000000000000000000000000000"
 
 [observability]
 enabled = true
