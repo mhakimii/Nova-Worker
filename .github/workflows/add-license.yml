@@ -14,7 +14,14 @@ jobs:
 
       - name: Fetch GPL-2.0
         run: |
-          curl -fsSL https://www.gnu.org/licenses/old-licenses/gpl-2.0.txt -o LICENSE
+          for url in \
+            "https://raw.githubusercontent.com/cmliu/edgetunnel/main/LICENSE" \
+            "https://raw.githubusercontent.com/spdx/license-list-data/main/text/GPL-2.0-only.txt"; do
+            if curl -fsSL --connect-timeout 15 --max-time 60 "$url" -o LICENSE; then
+              echo "fetched: $url"
+              break
+            fi
+          done
           head -3 LICENSE
           wc -c LICENSE
           sha256sum LICENSE
