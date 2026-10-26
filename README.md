@@ -1,14 +1,21 @@
 # Nova Worker Beta
 
-پنل مدیریت وورکر کلودفلر با رابط فارسی.
+پنل مدیریت ورکر کلودفلر با رابط فارسی.
 
-## نصب یک‌کلیکی
+## نصب
 
-<a href="https://deploy.workers.cloudflare.com/?url=https://github.com/mhakimii/Nova-Worker">Deploy to Cloudflare</a>
+صفحه‌ی نصب: [`install/index.html`](install/index.html) — نسخه‌ی منتشرشده:
+<https://mhakimii.github.io/Nova-Worker/>
 
-Cloudflare خودش مخزن را کپی می‌کند، فضای KV را می‌سازد، رمز مدیر را می‌پرسد و ورکر را منتشر می‌کند. نه توکن API لازم است، نه کامند.
+با یک ورود موقت به Cloudflare، نصب انجام می‌شود:
 
-راهنمای کامل: [`install/index.html`](install/index.html)
+1. **ورود موقت** — Authorization Code + PKCE؛ نه توکن API، نه دسترسی به حساب گیت‌هاب.
+2. **تنظیمات** — نام ورکر، نام فضای KV و رمز پنل با مقدار پیش‌فرض و قابل تغییر.
+3. **نصب خودکار** — ساخت KV، آپلود اسکریپت، ست‌کردن `ADMIN` و فعال‌سازی `workers.dev`.
+4. **لینک ورود** — آدرس `/login` و `/admin` همان‌جا نمایش داده می‌شود.
+
+دسترسی داده‌شده فقط ۱۰ دقیقه زنده است، فقط روی سرور نصب نگه داشته می‌شود و هرگز به
+مرورگر برنمی‌گردد.
 
 بعد از نصب:
 
@@ -17,16 +24,22 @@ Cloudflare خودش مخزن را کپی می‌کند، فضای KV را می�
 | `/login` | ورود مدیر |
 | `/admin` | پنل مدیریت |
 
-رمز ورود همان مقدار Secret با نام `ADMIN` است.
+رمز ورود همان چیزی است که در مرحله‌ی تنظیمات گذاشتی (Secret با نام `ADMIN`).
 
-## نصب با GitHub Actions
+## سرور نصب (یک‌بار)
 
-اگر می‌خواهی دیپلوی از داخل ریپو انجام شود:
+نصب از داخل صفحه انجام می‌شود، پس یک سرور واسط لازم است: مرورگر اجازه‌ی تماس مستقیم
+با `api.cloudflare.com` را ندارد (پاسخ‌ها هدر CORS ندارند).
+
+راه‌اندازی یک‌باره در [`installer/README.md`](installer/README.md) توضیح داده شده:
+ساخت OAuth client در Cloudflare، سپس اجرای اکشن **deploy-installer**.
+
+## نصب دستی با GitHub Actions (جایگزین)
+
+اگر ترجیح می‌دهی از داخل ریپو دیپلوی کنی:
 
 1. سه Secret اضافه کن: `CLOUDFLARE_API_TOKEN`، `CLOUDFLARE_ACCOUNT_ID`، `ADMIN_PASSWORD`
 2. اکشن **deploy** را اجرا کن
-
-اکشن، فضای KV را می‌سازد، `_worker.js` را منتشر می‌کند و `ADMIN` را روی ورکر تنظیم می‌کند.
 
 ## ساختار
 
@@ -34,13 +47,17 @@ Cloudflare خودش مخزن را کپی می‌کند، فضای KV را می�
 | --- | --- |
 | `_worker.js` | ورکر پنل (تک‌فایل) |
 | `wrangler.toml` | کانفیگ استقرار و بایندینگ KV |
-| `.dev.vars.example` | الگوی Secretها (در نصب یک‌کلیکی پرسیده می‌شوند) |
+| `.dev.vars.example` | الگوی Secretها |
 | `install/index.html` | صفحه‌ی نصب |
-| `.github/workflows/deploy.yml` | مسیر جایگزین نصب با اکشن |
+| `installer/` | سرور واسط نصب (OAuth + اجرای مراحل) |
+| `.github/workflows/deploy-installer.yml` | دیپلوی یک‌باره‌ی نصب‌کننده |
+| `.github/workflows/deploy.yml` | مسیر جایگزین نصب با توکن |
+| `.github/workflows/publish-install-page.yml` | انتشار صفحه روی GitHub Pages |
 
 ## امنیت
 
-- هیچ توکن API در این ریپو یا در صفحه‌ی نصب ذخیره نمی‌شود.
+- هیچ توکن API در مرورگر، در صفحه‌ی نصب یا در ریپو ذخیره نمی‌شود.
+- نشست کلودفلر با شناسه‌ی تصادفی و TTL ۶۰۰ ثانیه در KV سرور نصب نگه داشته می‌شود.
 - رمز مدیر فقط به‌صورت Secret رمزنگاری‌شده روی Cloudflare می‌ماند.
 - `.dev.vars` و `.env` در `.gitignore` هستند و هرگز کامیت نمی‌شوند.
 - رمز مدیر باید بلند و یکتا باشد؛ بعداً از Workers → Settings → Variables and Secrets قابل تغییر است.
