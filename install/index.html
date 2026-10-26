@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; connect-src https:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>نصب Nova Worker Beta</title>
@@ -18,6 +18,7 @@
     --accent: #6ea8fe;
     --accent-2: #38d39f;
     --warn: #f0b429;
+    --bad: #f2707d;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
@@ -79,37 +80,39 @@
     font-family: inherit;
   }
   .btn:active { transform: translateY(1px); }
+  .btn[disabled] { opacity: .45; cursor: not-allowed; }
   .btn-primary { background: var(--accent); color: #06122a; }
-  .btn-primary:hover { opacity: .92; }
+  .btn-primary:hover:not([disabled]) { opacity: .92; }
   .btn-ghost { background: transparent; color: var(--text); border-color: var(--line); }
   .btn-ghost:hover { background: var(--card-2); }
   .btn-ok { background: rgba(56,211,159,.14); color: var(--accent-2); border-color: rgba(56,211,159,.35); }
   .btn-xl { padding: 15px 30px; font-size: 16.5px; border-radius: 12px; }
-  input[type="text"] {
+  input[type="text"], input[type="password"], select {
     width: 100%; padding: 11px 13px; border-radius: 10px;
     border: 1px solid var(--line); background: #0e1528; color: var(--text);
     font-family: ui-monospace, Consolas, monospace; font-size: 14px; direction: ltr;
   }
-  input[type="text"]:focus { outline: 2px solid rgba(110,168,254,.35); border-color: var(--accent); }
+  select { direction: rtl; font-family: inherit; }
+  input:focus, select:focus { outline: 2px solid rgba(110,168,254,.35); border-color: var(--accent); }
   label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
-  .secret-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    background: #0e1528; border: 1px solid var(--line); border-radius: 10px;
-    padding: 10px 13px; margin-top: 9px; flex-wrap: wrap;
-  }
-  .secret-row code { border: 0; background: transparent; padding: 0; font-size: 13.5px; }
-  .secret-row .actions { display: flex; gap: 8px; }
+  .field { margin-top: 14px; }
+  .field .hint { font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+  .pw-row { display: flex; gap: 8px; align-items: stretch; }
+  .pw-row input { flex: 1; }
   .mini {
-    padding: 5px 10px; font-size: 12.5px; border-radius: 8px;
+    padding: 5px 10px; font-size: 12.5px; border-radius: 8px; white-space: nowrap;
     border: 1px solid var(--line); background: var(--card-2); color: var(--text);
     cursor: pointer; font-family: inherit;
   }
   .mini:hover { border-color: var(--accent); }
+  .meter { height: 5px; border-radius: 99px; background: #1b2440; margin-top: 8px; overflow: hidden; }
+  .meter span { display: block; height: 100%; width: 0; background: var(--bad); transition: width .2s ease, background .2s ease; }
   .note {
     border-right: 3px solid var(--warn); background: rgba(240,180,41,.07);
     border-radius: 8px; padding: 10px 14px; margin-top: 14px; font-size: 14px;
   }
   .ok-note { border-right-color: var(--accent-2); background: rgba(56,211,159,.07); }
+  .bad-note { border-right-color: var(--bad); background: rgba(242,112,125,.08); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 10px; margin-top: 10px; }
   .feat {
     background: #0e1528; border: 1px solid var(--line); border-radius: 11px;
@@ -128,6 +131,43 @@
     opacity: 0; pointer-events: none; transition: all .2s ease;
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .timer {
+    display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px;
+    padding: 5px 12px; border-radius: 999px; font-weight: 700;
+    background: rgba(56,211,159,.12); color: var(--accent-2);
+    border: 1px solid rgba(56,211,159,.3); direction: ltr;
+  }
+  .timer.low { background: rgba(242,112,125,.12); color: var(--bad); border-color: rgba(242,112,125,.3); }
+  .head-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .steps { list-style: none; padding: 0; margin: 14px 0 0; }
+  .steps li {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 9px 0; border-bottom: 1px solid #1e2740; font-size: 14px;
+  }
+  .steps li:last-child { border-bottom: 0; }
+  .dot {
+    width: 22px; height: 22px; flex: 0 0 22px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 12px; font-weight: 700;
+    background: #1b2440; color: var(--muted); border: 1px solid var(--line);
+  }
+  .dot.ok { background: rgba(56,211,159,.16); color: var(--accent-2); border-color: rgba(56,211,159,.4); }
+  .dot.fail { background: rgba(242,112,125,.16); color: var(--bad); border-color: rgba(242,112,125,.4); }
+  .steps .detail { color: var(--muted); font-size: 12.5px; display: block; }
+  .bar { height: 6px; border-radius: 99px; background: #1b2440; overflow: hidden; margin: 14px 0 4px; }
+  .bar span {
+    display: block; height: 100%; width: 35%; border-radius: 99px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    animation: slide 1.1s ease-in-out infinite alternate;
+  }
+  @keyframes slide { from { margin-inline-start: 0; } to { margin-inline-start: 65%; } }
+  .result-links { display: grid; gap: 10px; margin-top: 12px; }
+  .link-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    background: #0e1528; border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 13px; flex-wrap: wrap;
+  }
+  .link-row .val { font-family: ui-monospace, Consolas, monospace; font-size: 13px; direction: ltr; word-break: break-all; }
+  .hidden { display: none !important; }
 </style>
 </head>
 <body>
@@ -135,149 +175,515 @@
   <header>
     <span class="badge">Nova Worker Beta</span>
     <h1>نصب روی Cloudflare</h1>
-    <p>یک کلیک، بدون توکن API، بدون کامند.</p>
+    <p>ورود موقت می‌کنی، نام‌ها را انتخاب می‌کنی، نصب خودکار انجام می‌شود.</p>
   </header>
 
-  <div class="card hero">
-    <p style="margin-top:0">با دکمه‌ی زیر، Cloudflare خودش مخزن را می‌گیرد، فضای KV را می‌سازد و ورکر را منتشر می‌کند.</p>
+  <!-- مرحله ۱ -->
+  <div class="card hero" id="cardLogin">
+    <p style="margin-top:0">
+      با یک کلیک به Cloudflare وصل می‌شوی. دسترسی فقط <b>۱۰ دقیقه</b> زنده است و
+      هیچ فایلی از حساب گیت‌هاب تو خوانده نمی‌شود.
+    </p>
     <div class="row center">
-      <a class="btn btn-primary btn-xl" id="deployBtn" href="https://deploy.workers.cloudflare.com/?url=https://github.com/mhakimii/Nova-Worker" target="_blank" rel="noopener">Deploy to Cloudflare ↗</a>
+      <button class="btn btn-primary btn-xl" id="loginBtn" type="button">ورود موقت به Cloudflare ↗</button>
     </div>
     <div class="grid">
-      <div class="feat"><b>بدون توکن API</b>اتصال با ورود و تأیید خود Cloudflare انجام می‌شود.</div>
-      <div class="feat"><b>KV خودکار</b>فضای ذخیره‌سازی بدون تنظیم دستی ساخته می‌شود.</div>
-      <div class="feat"><b>رمز مدیر</b>هنگام نصب از خودت پرسیده می‌شود و Secret می‌ماند.</div>
+      <div class="feat"><b>بدون توکن</b>ورود با تأیید خود Cloudflare انجام می‌شود، نه با کپی توکن.</div>
+      <div class="feat"><b>بدون گیت‌هاب</b>اسکریپت آماده از سمت ما آپلود می‌شود.</div>
+      <div class="feat"><b>نشست کوتاه</b>بعد از ۱۰ دقیقه دسترسی خودبه‌خود باطل می‌شود.</div>
+    </div>
+    <div class="note" id="setupHint">
+      این صفحه به سرور نصب متصل می‌شود. اگر آدرسش را نمی‌دانی، پایین صفحه بخش
+      «آدرس سرور نصب» را ببین.
+    </div>
+  </div>
+
+  <!-- مرحله ۲ -->
+  <div class="card hidden" id="cardForm">
+    <div class="head-row">
+      <div class="step-head"><span class="num">۲</span><h2>تنظیمات نصب</h2></div>
+      <span class="timer" id="timer">۱۰:۰۰</span>
+    </div>
+    <p class="muted" style="margin-top:0">مقادیر پیش‌فرض آماده‌اند؛ هر کدام را خواستی عوض کن.</p>
+
+    <div class="field" id="accountField">
+      <label for="account">حساب کلودفلر</label>
+      <select id="account"></select>
+    </div>
+
+    <div class="field">
+      <label for="workerName">نام ورکر</label>
+      <input id="workerName" type="text" value="nova-worker" spellcheck="false" autocomplete="off">
+      <div class="hint">حروف کوچک انگلیسی، عدد و خط تیره. آدرس نهایی از همین ساخته می‌شود.</div>
+    </div>
+
+    <div class="field">
+      <label for="kvName">نام فضای ذخیره‌سازی (KV)</label>
+      <input id="kvName" type="text" value="nova-worker-kv" spellcheck="false" autocomplete="off">
+      <div class="hint">اگر وجود داشته باشد دوباره ساخته نمی‌شود و همان استفاده می‌شود.</div>
+    </div>
+
+    <div class="field">
+      <label for="adminPassword">رمز ورود پنل</label>
+      <div class="pw-row">
+        <input id="adminPassword" type="text" spellcheck="false" autocomplete="off">
+        <button class="mini" id="genBtn" type="button">ساخت رمز قوی</button>
+      </div>
+      <div class="meter"><span id="pwMeter"></span></div>
+      <div class="hint">حداقل ۱۲ کاراکتر. این مقدار به‌صورت Secret رمزنگاری‌شده روی ورکر ذخیره می‌شود، نه در گیت‌هاب.</div>
+    </div>
+
+    <div class="row">
+      <button class="btn btn-primary" id="installBtn" type="button">شروع نصب</button>
+      <button class="btn btn-ghost" id="reloginBtn" type="button">ورود دوباره</button>
+    </div>
+    <div class="note bad-note hidden" id="formError"></div>
+  </div>
+
+  <!-- مرحله ۳ -->
+  <div class="card hidden" id="cardProgress">
+    <div class="head-row">
+      <div class="step-head"><span class="num">۳</span><h2 id="progressTitle">در حال نصب</h2></div>
+      <span class="timer" id="elapsed">۰ ثانیه</span>
+    </div>
+    <div class="bar" id="bar"><span></span></div>
+    <p class="muted" id="progressNote">لطفاً صفحه را نبند. عملیات چند ثانیه طول می‌کشد.</p>
+    <ul class="steps" id="steps"></ul>
+  </div>
+
+  <!-- نتیجه -->
+  <div class="card hidden" id="cardResult">
+    <div class="step-head"><span class="num" style="background:rgba(56,211,159,.14);color:var(--accent-2);border-color:rgba(56,211,159,.4)">✓</span><h2>نصب تمام شد</h2></div>
+    <p class="muted" style="margin-top:0" id="resultSummary"></p>
+    <div class="result-links">
+      <div class="link-row">
+        <div><div class="muted" style="font-size:12px">ورود به پنل</div><div class="val" id="loginUrl"></div></div>
+        <a class="btn btn-primary" id="loginLink" target="_blank" rel="noopener">باز کردن ↗</a>
+      </div>
+      <div class="link-row">
+        <div><div class="muted" style="font-size:12px">آدرس ورکر</div><div class="val" id="workerUrl"></div></div>
+        <button class="mini" id="copyUrl" type="button">کپی</button>
+      </div>
+    </div>
+    <div class="note ok-note">
+      رمز ورود همان چیزی است که در مرحله‌ی قبل گذاشتی. برای تغییر بعدی:
+      Workers → ورکر → Settings → Variables and Secrets → <code>ADMIN</code>.
     </div>
   </div>
 
   <div class="card">
-    <div class="step-head"><span class="num">۱</span><h2>چه اتفاقی می‌افتد</h2></div>
-    <ol>
-      <li>به Cloudflare وارد می‌شوی و اجازه‌ی دسترسی به GitHub را می‌دهی.</li>
-      <li>اکانت و نام ورکر را انتخاب می‌کنی.</li>
-      <li>رمز مدیر (<code>ADMIN</code>) را وارد می‌کنی — همین رمز، رمز ورود پنل است.</li>
-      <li>Cloudflare مخزن را در اکانت گیت‌هاب خودت کپی می‌کند، KV را می‌سازد و ورکر را منتشر می‌کند.</li>
-    </ol>
-    <div class="note">رمز را همین حالا آماده کن: حداقل ۱۲ کاراکتر، ترکیبی از حروف بزرگ و کوچک، عدد و نماد. رمز کوتاه یا تکراری نگذار.</div>
-  </div>
-
-  <div class="card">
-    <div class="step-head"><span class="num">۲</span><h2>بعد از نصب</h2></div>
-    <p>آدرس ورکر را در داشبورد Cloudflare، بخش <b>Workers &amp; Pages</b> می‌بینی؛ چیزی شبیه این:</p>
-    <p><code>https://nova-worker.&lt;subdomain&gt;.workers.dev</code></p>
-    <ul>
-      <li>صفحه‌ی ورود: همان آدرس + <code>/login</code></li>
-      <li>پنل مدیریت: <code>/admin</code></li>
-      <li>رمز ورود: همان مقداری که در مرحله‌ی نصب به‌عنوان <code>ADMIN</code> وارد کردی</li>
-    </ul>
-    <div class="note ok-note">تغییر رمز بعداً: Workers → ورکر خودت → Settings → Variables and Secrets → مقدار <code>ADMIN</code> را ویرایش کن.</div>
-  </div>
-
-  <div class="card">
-    <div class="step-head"><span class="num">۳</span><h2>امنیت</h2></div>
-    <ul>
-      <li>هیچ توکن API در این صفحه یا در مرورگر تو قرار نمی‌گیرد؛ احراز هویت کاملاً با Cloudflare است.</li>
-      <li>رمز مدیر به‌صورت <b>Secret رمزنگاری‌شده</b> روی ورکر ذخیره می‌شود، نه در کد و نه در گیت‌هاب.</li>
-      <li>هیچ اسکریپت یا فونت خارجی در این صفحه بارگذاری نمی‌شود (CSP سخت‌گیرانه).</li>
-      <li>کد این پروژه عمومی است؛ رمزها و داده‌های کاربران هرگز داخل ریپو نیستند.</li>
-    </ul>
-  </div>
-
-  <div class="card">
+    <div class="step-head"><span class="num">؟</span><h2>سؤال‌های رایج</h2></div>
     <details>
-      <summary>مسیر حرفه‌ای: نصب با GitHub Actions (اختیاری)</summary>
-      <p>اگر می‌خواهی دیپلوی از داخل ریپوی خودت انجام شود، این مسیر را استفاده کن. به یک توکن Cloudflare با دسترسی Workers Scripts (Edit) و Workers KV Storage (Edit) نیاز داری.</p>
-
-      <label for="repo" style="margin-top:12px">مخزن گیت‌هاب</label>
-      <input id="repo" type="text" value="mhakimii/Nova-Worker" autocomplete="off" spellcheck="false">
-
-      <h3>سه Secret اضافه کن</h3>
-      <div class="secret-row">
-        <div><code>CLOUDFLARE_API_TOKEN</code><div class="muted">توکن API کلودفلر</div></div>
-        <div class="actions">
-          <button class="mini" data-copy="CLOUDFLARE_API_TOKEN">کپی نام</button>
-          <a class="btn btn-ok" data-secret="CLOUDFLARE_API_TOKEN" href="#" target="_blank" rel="noopener">افزودن ↗</a>
-        </div>
-      </div>
-      <div class="secret-row">
-        <div><code>CLOUDFLARE_ACCOUNT_ID</code><div class="muted">شناسه‌ی اکانت (پایین Overview)</div></div>
-        <div class="actions">
-          <button class="mini" data-copy="CLOUDFLARE_ACCOUNT_ID">کپی نام</button>
-          <a class="btn btn-ok" data-secret="CLOUDFLARE_ACCOUNT_ID" href="#" target="_blank" rel="noopener">افزودن ↗</a>
-        </div>
-      </div>
-      <div class="secret-row">
-        <div><code>ADMIN_PASSWORD</code><div class="muted">رمز ورود پنل</div></div>
-        <div class="actions">
-          <button class="mini" data-copy="ADMIN_PASSWORD">کپی نام</button>
-          <a class="btn btn-ok" data-secret="ADMIN_PASSWORD" href="#" target="_blank" rel="noopener">افزودن ↗</a>
-        </div>
-      </div>
-
-      <div class="row">
-        <a class="btn btn-primary" id="runLink" href="#" target="_blank" rel="noopener">اجرای Deploy در GitHub ↗</a>
-        <a class="btn btn-ghost" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">ساخت توکن ↗</a>
-      </div>
-
-      <h3>اگر خطا گرفتم</h3>
-      <ul>
-        <li><b>Authentication error:</b> توکن ناقص است یا Account ID اشتباه.</li>
-        <li><b>KV namespace not found:</b> توکن دسترسی Workers KV Storage (Edit) ندارد.</li>
-        <li><b>Secret خالی است:</b> نام Secret را دقیقاً با حروف بزرگ بنویس.</li>
-        <li><b>نام ورکر نامعتبر:</b> فقط حروف کوچک انگلیسی، عدد و خط تیره.</li>
-      </ul>
+      <summary>چرا ورود موقت و نه توکن API؟</summary>
+      <p>
+        توکن API باید دستی ساخته و کپی شود و معمولاً عمر طولانی دارد. در این روش با
+        Authorization Code + PKCE وارد می‌شوی، دسترسی فقط روی سرور نصب نگه داشته
+        می‌شود، هرگز به مرورگر برنمی‌گردد و بعد از ۱۰ دقیقه منقضی می‌شود.
+      </p>
+    </details>
+    <details>
+      <summary>چه دسترسی‌هایی گرفته می‌شود؟</summary>
+      <p>
+        فقط سه چیز: خواندن حساب‌ها، ساخت فضای KV و آپلود اسکریپت ورکر. در صفحه‌ی
+        تأیید کلودفلر دقیقاً همین‌ها را می‌بینی و می‌توانی رد کنی.
+      </p>
+    </details>
+    <details>
+      <summary>چرا فایل از گیت‌هاب خوانده نمی‌شود ولی نصب انجام می‌شود؟</summary>
+      <p>
+        اسکریپت آماده داخل سرور نصب نگه‌داری می‌شود و همان‌جا با API کلودفلر آپلود
+        می‌شود. حساب گیت‌هاب تو هیچ نقشی در نصب ندارد.
+      </p>
+    </details>
+    <details>
+      <summary id="installerSummary">آدرس سرور نصب</summary>
+      <p>
+        اگر آدرس سرور نصب را می‌دانی، اینجا بگذار. در همین مرورگر ذخیره می‌شود و
+        هیچ‌جا ارسال نمی‌شود.
+      </p>
+      <input id="installerInput" type="text" placeholder="https://nova-installer.example.workers.dev" spellcheck="false" autocomplete="off">
+      <div class="row"><button class="mini" id="saveInstaller" type="button">ذخیره آدرس</button></div>
     </details>
   </div>
 
-  <footer>Nova Worker Beta — سورس عمومی، لایسنس GPL-2.0. این صفحه هیچ رمز یا توکنی دریافت نمی‌کند.</footer>
+  <div class="card">
+    <div class="step-head"><span class="num">🔒</span><h2>امنیت</h2></div>
+    <ul>
+      <li>هیچ توکن یا رمزی در این صفحه ذخیره نمی‌شود؛ نه در حافظه‌ی مرورگر و نه در آدرس صفحه.</li>
+      <li>دسترسی کلودفلر فقط روی سرور نصب می‌ماند و بعد از ۱۰ دقیقه یا پایان نصب باطل می‌شود.</li>
+      <li>رمز پنل به‌صورت Secret رمزنگاری‌شده روی ورکر می‌نشیند و در پاسخ‌ها برگردانده نمی‌شود.</li>
+      <li>هیچ اسکریپت یا فونت خارجی بارگذاری نمی‌شود (CSP سخت‌گیرانه).</li>
+    </ul>
+  </div>
+
+  <footer>Nova Worker Beta — سورس عمومی، لایسنس GPL-2.0.</footer>
 </div>
 
 <div class="toast" id="toast">کپی شد</div>
 
 <script>
 (function () {
-  var repoInput = document.getElementById('repo');
-  var saved = null;
-  try { saved = localStorage.getItem('nova-worker-repo'); } catch (e) {}
-  if (saved) repoInput.value = saved;
+  "use strict";
 
-  function repo() {
-    var value = (repoInput.value || '').trim().replace(/^https?:\/\/github\.com\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
-    return /^[\w.-]+\/[\w.-]+$/.test(value) ? value : 'mhakimii/Nova-Worker';
+  // آدرس پیش‌فرض سرور نصب. بعد از دیپلوی، مقدارش را همین‌جا بگذار.
+  var DEFAULT_INSTALLER = "";
+
+  var $ = function (id) { return document.getElementById(id); };
+  var state = { session: "", installer: "", expiresAt: 0, timerId: 0, elapsedId: 0, busy: false };
+
+  var ERROR_TEXT = {
+    session_expired: "نشست ۱۰ دقیقه‌ای تمام شد. دوباره وارد شو.",
+    origin_not_allowed: "این دامنه اجازه‌ی اتصال به سرور نصب را ندارد.",
+    invalid_worker_name: "نام ورکر نامعتبر است؛ فقط حروف کوچک، عدد و خط تیره.",
+    invalid_kv_name: "نام فضای KV نامعتبر است.",
+    weak_password: "رمز پنل باید حداقل ۱۲ کاراکتر باشد.",
+    payload_missing: "اسکریپت آماده روی سرور نصب وجود ندارد.",
+    installer_not_configured: "سرور نصب هنوز تنظیم نشده است (OAUTH_CLIENT_ID).",
+    accounts_failed: "خواندن حساب‌های کلودفلر ناموفق بود.",
+    state_expired: "زمان ورود منقضی شد. دوباره تلاش کن.",
+    token_exchange_failed: "تبادل کد ورود ناموفق بود. دوباره تلاش کن.",
+    authorization_failed: "اجازه‌ی دسترسی داده نشد."
+  };
+
+  function fa(value) {
+    var digits = "۰۱۲۳۴۵۶۷۸۹";
+    return String(value).replace(/[0-9]/g, function (d) { return digits[+d]; });
   }
 
-  function refresh() {
-    var r = repo();
-    document.getElementById('runLink').href = 'https://github.com/' + r + '/actions/workflows/deploy.yml';
-    document.querySelectorAll('[data-secret]').forEach(function (el) {
-      el.href = 'https://github.com/' + r + '/settings/secrets/actions/new?name=' + encodeURIComponent(el.dataset.secret);
-    });
-    try { localStorage.setItem('nova-worker-repo', repoInput.value.trim()); } catch (e) {}
+  function toast(text) {
+    var el = $("toast");
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(el._t);
+    el._t = setTimeout(function () { el.classList.remove("show"); }, 1600);
   }
 
-  repoInput.addEventListener('input', refresh);
-  refresh();
+  function show(id) { $(id).classList.remove("hidden"); }
+  function hide(id) { $(id).classList.add("hidden"); }
 
-  var toast = document.getElementById('toast');
-  var timer = null;
-  function showToast(text) {
-    toast.textContent = text;
-    toast.classList.add('show');
-    clearTimeout(timer);
-    timer = setTimeout(function () { toast.classList.remove('show'); }, 1600);
+  function storedInstaller() {
+    var fromUrl = new URLSearchParams(location.search).get("installer");
+    if (fromUrl) {
+      try { localStorage.setItem("nova-installer", fromUrl); } catch (e) {}
+      return fromUrl.replace(/\/+$/, "");
+    }
+    var saved = "";
+    try { saved = localStorage.getItem("nova-installer") || ""; } catch (e) {}
+    return (saved || DEFAULT_INSTALLER).replace(/\/+$/, "");
   }
 
-  document.querySelectorAll('[data-copy]').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var value = btn.dataset.copy;
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(value).then(function () { showToast('کپی شد: ' + value); },
-          function () { showToast('کپی نشد — دستی انتخاب کن'); });
-      } else {
-        showToast('کپی نشد — دستی انتخاب کن');
+  function randomPassword(length) {
+    var sets = ["ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnopqrstuvwxyz", "23456789", "!@#$%^&*-_=+?"];
+    var all = sets.join("");
+    var out = [];
+    var bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    for (var i = 0; i < length; i += 1) out.push(all[bytes[i] % all.length]);
+    for (var s = 0; s < sets.length; s += 1) {
+      var b = new Uint8Array(1);
+      crypto.getRandomValues(b);
+      out[s] = sets[s][b[0] % sets[s].length];
+    }
+    for (var j = out.length - 1; j > 0; j -= 1) {
+      var r = new Uint8Array(1);
+      crypto.getRandomValues(r);
+      var k = r[0] % (j + 1);
+      var tmp = out[j]; out[j] = out[k]; out[k] = tmp;
+    }
+    return out.join("");
+  }
+
+  function scorePassword(value) {
+    var score = 0;
+    if (value.length >= 12) score += 1;
+    if (value.length >= 18) score += 1;
+    if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score += 1;
+    if (/[0-9]/.test(value)) score += 1;
+    if (/[^A-Za-z0-9]/.test(value)) score += 1;
+    return Math.min(score, 5);
+  }
+
+  function paintMeter() {
+    var value = $("adminPassword").value;
+    var score = scorePassword(value);
+    var meter = $("pwMeter");
+    meter.style.width = (score * 20) + "%";
+    meter.style.background = score >= 4 ? "var(--accent-2)" : score >= 3 ? "var(--warn)" : "var(--bad)";
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(state.timerId);
+    state.expiresAt = Date.now() + seconds * 1000;
+    var tick = function () {
+      var left = Math.max(0, Math.round((state.expiresAt - Date.now()) / 1000));
+      var mm = String(Math.floor(left / 60)).padStart(2, "0");
+      var ss = String(left % 60).padStart(2, "0");
+      var el = $("timer");
+      el.textContent = fa(mm + ":" + ss);
+      el.classList.toggle("low", left <= 120);
+      if (left === 0) {
+        clearInterval(state.timerId);
+        $("installBtn").disabled = true;
+        show("formError");
+        $("formError").textContent = "نشست ۱۰ دقیقه‌ای تمام شد. دوباره وارد شو.";
       }
+    };
+    tick();
+    state.timerId = setInterval(tick, 1000);
+  }
+
+  function apiError(payload, fallback) {
+    if (!payload) return fallback;
+    if (payload.detail) return (ERROR_TEXT[payload.error] || fallback) + " (" + payload.detail + ")";
+    return ERROR_TEXT[payload.error] || payload.error || fallback;
+  }
+
+  async function beginSession() {
+    var params = new URLSearchParams(location.search);
+    var session = params.get("session") || "";
+    var installer = storedInstaller();
+    if (!session || !installer) return;
+
+    state.session = session;
+    state.installer = installer;
+    hide("cardLogin");
+
+    try {
+      var response = await fetch(installer + "/api/session?id=" + encodeURIComponent(session), {
+        method: "GET",
+        credentials: "omit",
+        cache: "no-store"
+      });
+      var data = await response.json().catch(function () { return null; });
+
+      if (!response.ok || !data || !data.ok) {
+        show("cardLogin");
+        $("setupHint").className = "note bad-note";
+        $("setupHint").textContent = apiError(data, "اتصال به سرور نصب ناموفق بود.");
+        return;
+      }
+      if (!data.valid) {
+        show("cardLogin");
+        $("setupHint").className = "note bad-note";
+        $("setupHint").textContent = "نشست ۱۰ دقیقه‌ای تمام شد. دوباره وارد شو.";
+        return;
+      }
+
+      var accounts = data.accounts || [];
+      if (!accounts.length) {
+        show("cardLogin");
+        $("setupHint").className = "note bad-note";
+        $("setupHint").textContent = "هیچ حسابی در دسترس این دسترسی نبود. دسترسی‌ها را بررسی کن.";
+        return;
+      }
+
+      var select = $("account");
+      select.innerHTML = "";
+      accounts.forEach(function (account) {
+        var option = document.createElement("option");
+        option.value = account.id;
+        option.textContent = account.name || account.id;
+        select.appendChild(option);
+      });
+      if (accounts.length === 1) { $("accountField").classList.add("hidden"); }
+
+      $("adminPassword").value = randomPassword(24);
+      paintMeter();
+      $("installerInput").value = installer;
+      document.title = "نصب Nova Worker Beta — تنظیمات";
+
+      show("cardForm");
+      startCountdown(data.expires_in || 600);
+      history.replaceState({}, "", location.pathname);
+    } catch (error) {
+      show("cardLogin");
+      $("setupHint").className = "note bad-note";
+      $("setupHint").textContent = "اتصال به سرور نصب برقرار نشد: " + (error && error.message ? error.message : "خطای شبکه");
+    }
+  }
+
+  async function install() {
+    if (state.busy) return;
+
+    var workerName = $("workerName").value.trim();
+    var kvName = $("kvName").value.trim();
+    var password = $("adminPassword").value;
+    var accountId = $("account").value;
+
+    var errorBox = $("formError");
+    errorBox.classList.add("hidden");
+
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(workerName)) {
+      errorBox.textContent = ERROR_TEXT.invalid_worker_name;
+      return show("formError");
+    }
+    if (!/^[A-Za-z0-9._-]{1,64}$/.test(kvName)) {
+      errorBox.textContent = ERROR_TEXT.invalid_kv_name;
+      return show("formError");
+    }
+    if (password.length < 12) {
+      errorBox.textContent = ERROR_TEXT.weak_password;
+      return show("formError");
+    }
+    if (!accountId) {
+      errorBox.textContent = "حساب کلودفلر انتخاب نشده است.";
+      return show("formError");
+    }
+
+    state.busy = true;
+    $("installBtn").disabled = true;
+    $("reloginBtn").disabled = true;
+    hide("cardForm");
+    show("cardProgress");
+    $("steps").innerHTML = "";
+    $("progressTitle").textContent = "در حال نصب " + workerName;
+    $("progressNote").className = "muted";
+    $("progressNote").textContent = "لطفاً صفحه را نبند. عملیات چند ثانیه طول می‌کشد.";
+
+    var started = Date.now();
+    clearInterval(state.elapsedId);
+    state.elapsedId = setInterval(function () {
+      var seconds = Math.floor((Date.now() - started) / 1000);
+      $("elapsed").textContent = fa(seconds) + " ثانیه";
+    }, 250);
+
+    try {
+      var response = await fetch(state.installer + "/api/install", {
+        method: "POST",
+        credentials: "omit",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          session: state.session,
+          account_id: accountId,
+          worker_name: workerName,
+          kv_name: kvName,
+          admin_password: password
+        })
+      });
+      var data = await response.json().catch(function () { return null; });
+      clearInterval(state.elapsedId);
+      clearInterval(state.timerId);
+
+      renderSteps((data && data.steps) || []);
+
+      if (!response.ok || !data || !data.ok) {
+        $("progressTitle").textContent = "نصب متوقف شد";
+        $("bar").classList.add("hidden");
+        $("progressNote").className = "note bad-note";
+        $("progressNote").textContent = apiError(data, "نصب انجام نشد.");
+        $("installBtn").disabled = false;
+        $("reloginBtn").disabled = false;
+        $("cardForm").classList.remove("hidden");
+        hide("cardProgress");
+        return;
+      }
+
+      hide("cardProgress");
+      $("resultSummary").textContent =
+        "ورکر " + data.worker.name + " روی حساب " + data.worker.account + " منتشر شد.";
+      $("loginUrl").textContent = data.login_url;
+      $("workerUrl").textContent = data.url;
+      $("loginLink").href = data.login_url;
+      $("copyUrl").dataset.value = data.url;
+      show("cardResult");
+      $("cardResult").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      clearInterval(state.elapsedId);
+      $("progressTitle").textContent = "نصب متوقف شد";
+      $("bar").classList.add("hidden");
+      $("progressNote").className = "note bad-note";
+      $("progressNote").textContent = "خطای شبکه: " + (error && error.message ? error.message : "نامشخص");
+      $("cardForm").classList.remove("hidden");
+      hide("cardProgress");
+    } finally {
+      state.busy = false;
+      $("installBtn").disabled = false;
+      $("reloginBtn").disabled = false;
+    }
+  }
+
+  function renderSteps(steps) {
+    var list = $("steps");
+    list.innerHTML = "";
+    steps.forEach(function (step) {
+      var li = document.createElement("li");
+      var dot = document.createElement("span");
+      dot.className = "dot " + (step.ok ? "ok" : "fail");
+      dot.textContent = step.ok ? "✓" : "✕";
+      var body = document.createElement("div");
+      var title = document.createElement("div");
+      title.textContent = step.title;
+      var detail = document.createElement("span");
+      detail.className = "detail";
+      detail.textContent = step.detail || "";
+      body.appendChild(title);
+      body.appendChild(detail);
+      li.appendChild(dot);
+      li.appendChild(body);
+      list.appendChild(li);
     });
+    if (steps.length && steps.every(function (s) { return s.ok; })) {
+      $("progressTitle").textContent = "نصب موفق";
+      $("bar").classList.add("hidden");
+    }
+  }
+
+  /* ------------------------------ wiring ------------------------------- */
+
+  $("loginBtn").addEventListener("click", function () {
+    var installer = storedInstaller();
+    if (!installer) {
+      var details = document.querySelectorAll("details");
+      details[details.length - 1].open = true;
+      $("installerInput").focus();
+      toast("اول آدرس سرور نصب را بگذار");
+      return;
+    }
+    var origin = location.origin + location.pathname.replace(/index\.html$/, "");
+    location.href = installer + "/login?origin=" + encodeURIComponent(origin);
   });
+
+  $("saveInstaller").addEventListener("click", function () {
+    var value = $("installerInput").value.trim().replace(/\/+$/, "");
+    if (!/^https:\/\/[^\s/]+$/.test(value)) {
+      toast("آدرس باید با https:// شروع شود");
+      return;
+    }
+    try { localStorage.setItem("nova-installer", value); } catch (e) {}
+    toast("ذخیره شد");
+  });
+
+  $("genBtn").addEventListener("click", function () {
+    $("adminPassword").value = randomPassword(24);
+    paintMeter();
+    toast("رمز قوی ساخته شد");
+  });
+
+  $("adminPassword").addEventListener("input", paintMeter);
+  $("installBtn").addEventListener("click", install);
+
+  $("reloginBtn").addEventListener("click", function () {
+    var installer = storedInstaller();
+    if (!installer) return;
+    var origin = location.origin + location.pathname.replace(/index\.html$/, "");
+    location.href = installer + "/login?origin=" + encodeURIComponent(origin);
+  });
+
+  $("copyUrl").addEventListener("click", function () {
+    var value = $("copyUrl").dataset.value || "";
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(value).then(function () { toast("کپی شد"); },
+        function () { toast("کپی نشد — دستی انتخاب کن"); });
+    } else {
+      toast("کپی نشد — دستی انتخاب کن");
+    }
+  });
+
+  var installerValue = storedInstaller();
+  if (installerValue) $("installerInput").value = installerValue;
+
+  beginSession();
 })();
 </script>
 </body>
