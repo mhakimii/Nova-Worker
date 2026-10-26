@@ -5,11 +5,8 @@
   "description": "Nova Worker Beta — Cloudflare Workers control panel (Persian UI)",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "tail": "wrangler tail"
-  },
-  "devDependencies": {
-    "wrangler": "^4.152.0"
+    "dev": "npx --yes wrangler@4.152.0 dev",
+    "tail": "npx --yes wrangler@4.152.0 tail"
   },
   "cloudflare": {
     "bindings": {
