@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex, nofollow">
 <title>نصب Nova Worker Beta</title>
 <style>
@@ -30,7 +32,7 @@
     min-height: 100vh;
   }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 20px 64px; }
-  header { text-align: center; margin-bottom: 28px; }
+  header { text-align: center; margin-bottom: 26px; }
   .badge {
     display: inline-block; padding: 4px 12px; border-radius: 999px;
     background: rgba(110,168,254,.12); color: var(--accent);
@@ -44,6 +46,11 @@
     border: 1px solid var(--line); border-radius: 16px;
     padding: 20px 22px; margin: 16px 0;
   }
+  .card.hero {
+    border-color: rgba(110,168,254,.45);
+    box-shadow: 0 0 0 1px rgba(110,168,254,.08), 0 20px 50px -30px rgba(110,168,254,.5);
+    text-align: center;
+  }
   .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
   .num {
     width: 30px; height: 30px; flex: 0 0 30px; border-radius: 9px;
@@ -52,7 +59,10 @@
     border: 1px solid rgba(110,168,254,.28);
   }
   h2 { font-size: 18px; margin: 0; }
+  h3 { font-size: 15px; margin: 18px 0 6px; }
   p { margin: 8px 0; }
+  ul, ol { margin: 8px 0; padding-inline-start: 22px; }
+  li { margin: 4px 0; }
   .muted { color: var(--muted); font-size: 14px; }
   code {
     background: #0e1528; border: 1px solid var(--line); border-radius: 7px;
@@ -60,10 +70,11 @@
     font-size: 13px; direction: ltr; display: inline-block;
   }
   .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+  .center { justify-content: center; }
   .btn {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 16px; border-radius: 10px; text-decoration: none;
-    font-size: 14px; font-weight: 600; cursor: pointer;
+    padding: 10px 18px; border-radius: 10px; text-decoration: none;
+    font-size: 14.5px; font-weight: 700; cursor: pointer;
     border: 1px solid transparent; transition: transform .06s ease, opacity .15s ease;
     font-family: inherit;
   }
@@ -73,6 +84,7 @@
   .btn-ghost { background: transparent; color: var(--text); border-color: var(--line); }
   .btn-ghost:hover { background: var(--card-2); }
   .btn-ok { background: rgba(56,211,159,.14); color: var(--accent-2); border-color: rgba(56,211,159,.35); }
+  .btn-xl { padding: 15px 30px; font-size: 16.5px; border-radius: 12px; }
   input[type="text"] {
     width: 100%; padding: 11px 13px; border-radius: 10px;
     border: 1px solid var(--line); background: #0e1528; color: var(--text);
@@ -98,9 +110,16 @@
     border-radius: 8px; padding: 10px 14px; margin-top: 14px; font-size: 14px;
   }
   .ok-note { border-right-color: var(--accent-2); background: rgba(56,211,159,.07); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 10px; margin-top: 10px; }
+  .feat {
+    background: #0e1528; border: 1px solid var(--line); border-radius: 11px;
+    padding: 12px 14px; font-size: 14px;
+  }
+  .feat b { display: block; margin-bottom: 2px; }
   details { margin-top: 10px; }
-  summary { cursor: pointer; font-weight: 600; font-size: 14.5px; }
-  details p { color: var(--muted); font-size: 14px; }
+  summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+  details[open] summary { margin-bottom: 6px; }
+  details p, details li { color: var(--muted); font-size: 14px; }
   footer { text-align: center; color: var(--muted); font-size: 13px; margin-top: 32px; }
   .toast {
     position: fixed; inset-inline-start: 50%; transform: translateX(-50%) translateY(20px);
@@ -115,104 +134,108 @@
 <div class="wrap">
   <header>
     <span class="badge">Nova Worker Beta</span>
-    <h1>نصب خودکار روی Cloudflare</h1>
-    <p>بدون کامند، بدون فایل محلی — همه‌ی مراحل از داخل GitHub انجام می‌شود.</p>
+    <h1>نصب روی Cloudflare</h1>
+    <p>یک کلیک، بدون توکن API، بدون کامند.</p>
   </header>
 
-  <div class="card">
-    <label for="repo">مخزن گیت‌هاب</label>
-    <input id="repo" type="text" value="mhakimii/Nova-Worker" autocomplete="off" spellcheck="false">
-    <p class="muted">اگر ریپو را Fork کرده‌ای، نام خودت را بنویس: <code>username/repo</code></p>
-  </div>
-
-  <div class="card">
-    <div class="step-head"><span class="num">۱</span><h2>ساخت API Token در Cloudflare</h2></div>
-    <p>روی دکمه بزن؛ صفحه‌ی ساخت توکن با دسترسی‌های لازم از قبل پر می‌شود. فقط دکمه‌ی <b>Create Token</b> را بزن.</p>
-    <p class="muted">دسترسی‌ها: Workers Scripts (Edit) · Workers KV Storage (Edit) · Account Settings (Read)</p>
-    <div class="row">
-      <a class="btn btn-primary" id="tokenLink" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">ساخت توکن در Cloudflare ↗</a>
+  <div class="card hero">
+    <p style="margin-top:0">با دکمه‌ی زیر، Cloudflare خودش مخزن را می‌گیرد، فضای KV را می‌سازد و ورکر را منتشر می‌کند.</p>
+    <div class="row center">
+      <a class="btn btn-primary btn-xl" id="deployBtn" href="https://deploy.workers.cloudflare.com/?url=https://github.com/mhakimii/Nova-Worker" target="_blank" rel="noopener">Deploy to Cloudflare ↗</a>
     </div>
-    <div class="note">توکن فقط یک‌بار نمایش داده می‌شود. همان لحظه کپی کن — در مرحله‌ی ۳ لازمش داری.</div>
-  </div>
-
-  <div class="card">
-    <div class="step-head"><span class="num">۲</span><h2>پیدا کردن Account ID</h2></div>
-    <p>در داشبورد کلودفلر، اکانتت را باز کن؛ <b>Account ID</b> پایین صفحه‌ی Overview (یا در آدرس صفحه) نوشته شده است.</p>
-    <div class="row">
-      <a class="btn btn-ghost" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">باز کردن داشبورد ↗</a>
+    <div class="grid">
+      <div class="feat"><b>بدون توکن API</b>اتصال با ورود و تأیید خود Cloudflare انجام می‌شود.</div>
+      <div class="feat"><b>KV خودکار</b>فضای ذخیره‌سازی بدون تنظیم دستی ساخته می‌شود.</div>
+      <div class="feat"><b>رمز مدیر</b>هنگام نصب از خودت پرسیده می‌شود و Secret می‌ماند.</div>
     </div>
   </div>
 
   <div class="card">
-    <div class="step-head"><span class="num">۳</span><h2>افزودن سه Secret به GitHub</h2></div>
-    <p>هر مورد را جداگانه اضافه کن. مقدارها فقط در GitHub ذخیره می‌شوند و در لاگ‌ها نمایش داده نمی‌شوند.</p>
-
-    <div class="secret-row">
-      <div><code>CLOUDFLARE_API_TOKEN</code><div class="muted">توکن مرحله ۱</div></div>
-      <div class="actions">
-        <button class="mini" data-copy="CLOUDFLARE_API_TOKEN">کپی نام</button>
-        <a class="btn btn-ok" data-secret="CLOUDFLARE_API_TOKEN" href="#" target="_blank" rel="noopener">افزودن در GitHub ↗</a>
-      </div>
-    </div>
-
-    <div class="secret-row">
-      <div><code>CLOUDFLARE_ACCOUNT_ID</code><div class="muted">شناسه‌ی اکانت مرحله ۲</div></div>
-      <div class="actions">
-        <button class="mini" data-copy="CLOUDFLARE_ACCOUNT_ID">کپی نام</button>
-        <a class="btn btn-ok" data-secret="CLOUDFLARE_ACCOUNT_ID" href="#" target="_blank" rel="noopener">افزودن در GitHub ↗</a>
-      </div>
-    </div>
-
-    <div class="secret-row">
-      <div><code>ADMIN_PASSWORD</code><div class="muted">رمز ورود پنل — خودت انتخاب کن</div></div>
-      <div class="actions">
-        <button class="mini" data-copy="ADMIN_PASSWORD">کپی نام</button>
-        <a class="btn btn-ok" data-secret="ADMIN_PASSWORD" href="#" target="_blank" rel="noopener">افزودن در GitHub ↗</a>
-      </div>
-    </div>
-
-    <div class="note">رمز مدیر را همین‌جا تعیین می‌کنی و همان به‌عنوان <code>ADMIN</code> روی ورکر تنظیم می‌شود؛ هیچ‌جای دیگری لازم نیست وارد شود.</div>
+    <div class="step-head"><span class="num">۱</span><h2>چه اتفاقی می‌افتد</h2></div>
+    <ol>
+      <li>به Cloudflare وارد می‌شوی و اجازه‌ی دسترسی به GitHub را می‌دهی.</li>
+      <li>اکانت و نام ورکر را انتخاب می‌کنی.</li>
+      <li>رمز مدیر (<code>ADMIN</code>) را وارد می‌کنی — همین رمز، رمز ورود پنل است.</li>
+      <li>Cloudflare مخزن را در اکانت گیت‌هاب خودت کپی می‌کند، KV را می‌سازد و ورکر را منتشر می‌کند.</li>
+    </ol>
+    <div class="note">رمز را همین حالا آماده کن: حداقل ۱۲ کاراکتر، ترکیبی از حروف بزرگ و کوچک، عدد و نماد. رمز کوتاه یا تکراری نگذار.</div>
   </div>
 
   <div class="card">
-    <div class="step-head"><span class="num">۴</span><h2>اجرای نصب</h2></div>
-    <p>در صفحه‌ی Actions روی <b>Run workflow</b> بزن. نام ورکر را می‌توانی همان <code>nova-worker</code> بگذاری یا عوض کنی.</p>
-    <div class="row">
-      <a class="btn btn-primary" id="runLink" href="#" target="_blank" rel="noopener">اجرای Deploy در GitHub ↗</a>
-      <a class="btn btn-ghost" id="actionsLink" href="#" target="_blank" rel="noopener">دیدن اجرا‌ها</a>
-    </div>
-    <p class="muted">در این مرحله به‌صورت خودکار: فضای KV ساخته می‌شود، ورکر منتشر می‌شود و رمز مدیر تنظیم می‌شود.</p>
-  </div>
-
-  <div class="card">
-    <div class="step-head"><span class="num">✓</span><h2>بعد از نصب</h2></div>
-    <p>در پایان اجرا، آدرس ورکر در بخش <b>Summary</b> همان اجرا نوشته می‌شود؛ چیزی شبیه این:</p>
+    <div class="step-head"><span class="num">۲</span><h2>بعد از نصب</h2></div>
+    <p>آدرس ورکر را در داشبورد Cloudflare، بخش <b>Workers &amp; Pages</b> می‌بینی؛ چیزی شبیه این:</p>
     <p><code>https://nova-worker.&lt;subdomain&gt;.workers.dev</code></p>
-    <p>صفحه‌ی ورود: همان آدرس + <code>/login</code> — پنل: <code>/admin</code> — رمز: همان <code>ADMIN_PASSWORD</code>.</p>
-    <div class="note ok-note">برای به‌روزرسانی بعدی، فقط کافی است اکشن <b>deploy</b> را دوباره اجرا کنی. تنظیمات و کاربران در KV باقی می‌مانند.</div>
+    <ul>
+      <li>صفحه‌ی ورود: همان آدرس + <code>/login</code></li>
+      <li>پنل مدیریت: <code>/admin</code></li>
+      <li>رمز ورود: همان مقداری که در مرحله‌ی نصب به‌عنوان <code>ADMIN</code> وارد کردی</li>
+    </ul>
+    <div class="note ok-note">تغییر رمز بعداً: Workers → ورکر خودت → Settings → Variables and Secrets → مقدار <code>ADMIN</code> را ویرایش کن.</div>
+  </div>
+
+  <div class="card">
+    <div class="step-head"><span class="num">۳</span><h2>امنیت</h2></div>
+    <ul>
+      <li>هیچ توکن API در این صفحه یا در مرورگر تو قرار نمی‌گیرد؛ احراز هویت کاملاً با Cloudflare است.</li>
+      <li>رمز مدیر به‌صورت <b>Secret رمزنگاری‌شده</b> روی ورکر ذخیره می‌شود، نه در کد و نه در گیت‌هاب.</li>
+      <li>هیچ اسکریپت یا فونت خارجی در این صفحه بارگذاری نمی‌شود (CSP سخت‌گیرانه).</li>
+      <li>کد این پروژه عمومی است؛ رمزها و داده‌های کاربران هرگز داخل ریپو نیستند.</li>
+    </ul>
   </div>
 
   <div class="card">
     <details>
-      <summary>اگر خطا گرفتم چه کار کنم؟</summary>
-      <p><b>Authentication error / 10000:</b> توکن ناقص است یا Account ID اشتباه. توکن را با همان لینک مرحله ۱ دوباره بساز.</p>
-      <p><b>KV namespace not found:</b> توکن دسترسی Workers KV Storage ندارد؛ مقدار Edit لازم است.</p>
-      <p><b>Secret خالی است:</b> نام Secret را دقیقاً مثل مرحله ۳ بنویس (حروف بزرگ).</p>
-      <p><b>Worker name invalid:</b> فقط حروف کوچک انگلیسی، عدد و خط تیره مجاز است.</p>
+      <summary>مسیر حرفه‌ای: نصب با GitHub Actions (اختیاری)</summary>
+      <p>اگر می‌خواهی دیپلوی از داخل ریپوی خودت انجام شود، این مسیر را استفاده کن. به یک توکن Cloudflare با دسترسی Workers Scripts (Edit) و Workers KV Storage (Edit) نیاز داری.</p>
+
+      <label for="repo" style="margin-top:12px">مخزن گیت‌هاب</label>
+      <input id="repo" type="text" value="mhakimii/Nova-Worker" autocomplete="off" spellcheck="false">
+
+      <h3>سه Secret اضافه کن</h3>
+      <div class="secret-row">
+        <div><code>CLOUDFLARE_API_TOKEN</code><div class="muted">توکن API کلودفلر</div></div>
+        <div class="actions">
+          <button class="mini" data-copy="CLOUDFLARE_API_TOKEN">کپی نام</button>
+          <a class="btn btn-ok" data-secret="CLOUDFLARE_API_TOKEN" href="#" target="_blank" rel="noopener">افزودن ↗</a>
+        </div>
+      </div>
+      <div class="secret-row">
+        <div><code>CLOUDFLARE_ACCOUNT_ID</code><div class="muted">شناسه‌ی اکانت (پایین Overview)</div></div>
+        <div class="actions">
+          <button class="mini" data-copy="CLOUDFLARE_ACCOUNT_ID">کپی نام</button>
+          <a class="btn btn-ok" data-secret="CLOUDFLARE_ACCOUNT_ID" href="#" target="_blank" rel="noopener">افزودن ↗</a>
+        </div>
+      </div>
+      <div class="secret-row">
+        <div><code>ADMIN_PASSWORD</code><div class="muted">رمز ورود پنل</div></div>
+        <div class="actions">
+          <button class="mini" data-copy="ADMIN_PASSWORD">کپی نام</button>
+          <a class="btn btn-ok" data-secret="ADMIN_PASSWORD" href="#" target="_blank" rel="noopener">افزودن ↗</a>
+        </div>
+      </div>
+
+      <div class="row">
+        <a class="btn btn-primary" id="runLink" href="#" target="_blank" rel="noopener">اجرای Deploy در GitHub ↗</a>
+        <a class="btn btn-ghost" href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noopener">ساخت توکن ↗</a>
+      </div>
+
+      <h3>اگر خطا گرفتم</h3>
+      <ul>
+        <li><b>Authentication error:</b> توکن ناقص است یا Account ID اشتباه.</li>
+        <li><b>KV namespace not found:</b> توکن دسترسی Workers KV Storage (Edit) ندارد.</li>
+        <li><b>Secret خالی است:</b> نام Secret را دقیقاً با حروف بزرگ بنویس.</li>
+        <li><b>نام ورکر نامعتبر:</b> فقط حروف کوچک انگلیسی، عدد و خط تیره.</li>
+      </ul>
     </details>
   </div>
 
-  <footer>این صفحه هیچ رمز یا توکنی دریافت نمی‌کند؛ همه‌ی عملیات داخل GitHub و Cloudflare انجام می‌شود.</footer>
+  <footer>Nova Worker Beta — سورس عمومی، لایسنس GPL-2.0. این صفحه هیچ رمز یا توکنی دریافت نمی‌کند.</footer>
 </div>
 
 <div class="toast" id="toast">کپی شد</div>
 
 <script>
 (function () {
-  var TOKEN_PERMISSIONS = '%5B%7B%22key%22%3A%22workers_scripts%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22workers_kv_storage%22%2C%22type%22%3A%22edit%22%7D%2C%7B%22key%22%3A%22account_settings%22%2C%22type%22%3A%22read%22%7D%5D';
-  var TOKEN_URL = 'https://dash.cloudflare.com/profile/api-tokens?permissionGroupKeys=' +
-    TOKEN_PERMISSIONS + '&accountId=*&zoneId=all&name=Nova%20Worker%20Deploy';
-
   var repoInput = document.getElementById('repo');
   var saved = null;
   try { saved = localStorage.getItem('nova-worker-repo'); } catch (e) {}
@@ -226,11 +249,9 @@
   function refresh() {
     var r = repo();
     document.getElementById('runLink').href = 'https://github.com/' + r + '/actions/workflows/deploy.yml';
-    document.getElementById('actionsLink').href = 'https://github.com/' + r + '/actions';
     document.querySelectorAll('[data-secret]').forEach(function (el) {
       el.href = 'https://github.com/' + r + '/settings/secrets/actions/new?name=' + encodeURIComponent(el.dataset.secret);
     });
-    document.getElementById('tokenLink').href = TOKEN_URL;
     try { localStorage.setItem('nova-worker-repo', repoInput.value.trim()); } catch (e) {}
   }
 
