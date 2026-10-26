@@ -1,0 +1,17 @@
+# dependencies
+node_modules/
+
+# wrangler / local build output
+.wrangler/
+dist/
+
+# secrets — never commit
+.dev.vars
+.env
+.env.*
+!.dev.vars.example
+!.env.example
+
+# logs & OS noise
+*.log
+.DS_Store
