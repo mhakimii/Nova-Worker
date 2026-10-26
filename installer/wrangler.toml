@@ -1,0 +1,27 @@
+# سرور واسط نصب — یک‌بار دیپلوی می‌شود، بعد از آن همه‌ی نصب‌ها را انجام می‌دهد.
+name = "nova-installer"
+main = "src/index.js"
+compatibility_date = "2026-10-08"
+workers_dev = true
+
+# اسکریپت آماده‌ی پنل به‌صورت متن داخل همین ورکر باندل می‌شود.
+# این فایل با ورک‌فلو deploy-installer ساخته می‌شود (کامیت نمی‌شود).
+[[rules]]
+type = "Text"
+globs = ["**/*.txt"]
+fallthrough = true
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+# شناسه در دیپلوی واقعی توسط ورک‌فلو جایگزین می‌شود.
+id = "00000000000000000000000000000000"
+
+[vars]
+# Client ID از OAuth client کلودفلر (عمومی است، راز نیست).
+OAUTH_CLIENT_ID = ""
+# مبدأهای مجاز صفحه‌ی نصب؛ چند مقدار با کاما.
+INSTALL_ORIGIN = "https://mhakimii.github.io"
+# اگر خواستی scope مشخصی درخواست شود (اختیاری).
+OAUTH_SCOPE = ""
+# تاریخ سازگاری ورکری که نصب می‌شود.
+COMPATIBILITY_DATE = "2026-10-08"
