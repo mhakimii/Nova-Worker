@@ -66,7 +66,7 @@ export default {
         case "/callback":
           return await handleCallback(url, env, allowed);
         case "/api/session":
-          return await handleSession(url, env, headers);
+          return await handleSession(url, env, headers, origin);
         case "/api/install":
           return await handleInstall(request, env, allowed, headers);
         default:
@@ -121,6 +121,14 @@ function redirect(location) {
   });
 }
 
+function safeUrl(value) {
+  try {
+    return new URL(String(value));
+  } catch {
+    return null;
+  }
+}
+
 /* -------------------------------- routes -------------------------------- */
 
 async function handleLogin(url, env, allowed) {
@@ -128,10 +136,20 @@ async function handleLogin(url, env, allowed) {
     return jsonResponse({ ok: false, error: "installer_not_configured" }, 503);
   }
 
-  const origin = normalizeOrigin(url.searchParams.get("origin") || "");
-  if (!origin || !allowed.includes(origin)) {
+  const raw = url.searchParams.get("origin") || "";
+  let target = null;
+  try {
+    target = new URL(raw);
+  } catch {
+    target = null;
+  }
+  if (!target || !allowed.includes(target.origin)) {
     return jsonResponse({ ok: false, error: "origin_not_allowed" }, 403);
   }
+
+  // مسیر صفحه هم حفظ می‌شود تا کاربر به همان صفحه برگردد، نه به ریشه‌ی دامنه.
+  const origin = target.origin;
+  const returnTo = `${target.origin}${target.pathname}`;
 
   const state = randomToken(24);
   const verifier = randomToken(48);
@@ -140,7 +158,7 @@ async function handleLogin(url, env, allowed) {
   await kvPut(
     env,
     `oauth:${state}`,
-    { verifier, origin, created: Date.now() },
+    { verifier, origin, returnTo, created: Date.now() },
     STATE_TTL,
   );
 
@@ -159,6 +177,16 @@ async function handleCallback(url, env, allowed) {
   const errorParam = url.searchParams.get("error");
   if (errorParam) {
     const description = url.searchParams.get("error_description") || errorParam;
+    const deniedState = url.searchParams.get("state") || "";
+    const pendingDenied = deniedState ? await kvGet(env, `oauth:${deniedState}`) : null;
+    if (pendingDenied) {
+      await env.SESSIONS.delete(`oauth:${deniedState}`);
+      const back = safeUrl(pendingDenied.returnTo || pendingDenied.origin);
+      if (back) {
+        back.searchParams.set("denied", "1");
+        return redirect(back.toString());
+      }
+    }
     return jsonResponse({ ok: false, error: "authorization_failed", detail: description }, 400);
   }
 
@@ -208,13 +236,19 @@ async function handleCallback(url, env, allowed) {
     SESSION_TTL,
   );
 
-  const target = new URL(origin);
+  const target = safeUrl(pending.returnTo || origin);
+  if (!target) return jsonResponse({ ok: false, error: "origin_not_allowed" }, 403);
   target.searchParams.set("session", session);
   target.searchParams.set("installer", url.origin);
   return redirect(target.toString());
 }
 
-async function handleSession(url, env, headers) {
+async function handleSession(url, env, headers, requestOrigin) {
+  if (!headers["Access-Control-Allow-Origin"] && !requestOrigin) {
+    // برخی مرورگرها روی GET ساده هدر Origin نمی‌فرستند؛ این پاسخ رازی ندارد
+    // چون شناسه‌ی نشست ۲۵۶ بیتی است و بدون آن چیزی برگردانده نمی‌شود.
+    headers["Access-Control-Allow-Origin"] = "*";
+  }
   const id = url.searchParams.get("id") || "";
   if (!id) return jsonResponse({ ok: false, error: "missing_session" }, 400, headers);
 
